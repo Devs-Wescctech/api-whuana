@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 def conectar():
     return psycopg2.connect(
-        host=os.getenv("POSTGRES_HOST", "localhost"),
+        host=os.getenv("POSTGRES_HOST", "172.16.0.24"),
         database=os.getenv("POSTGRES_DB", "postgres"),
         user=os.getenv("POSTGRES_USER", "sup_cristian"),
         password=os.getenv("POSTGRES_PASSWORD", "17qysrutiov35W"),
@@ -98,3 +98,4 @@ def home():
 if __name__ == '__main__':
     # Para testar localmente fora do Docker:
     app.run(host="0.0.0.0", debug=True, port=5000)
+
