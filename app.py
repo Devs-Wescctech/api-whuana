@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 def conectar():
     return psycopg2.connect(
-        host=os.getenv("POSTGRES_HOST", "172.16.0.24"),
+        host=os.getenv("POSTGRES_HOST", "172.16.0.24"),  # IP do servidor
         database=os.getenv("POSTGRES_DB", "postgres"),
         user=os.getenv("POSTGRES_USER", "sup_cristian"),
         password=os.getenv("POSTGRES_PASSWORD", "17qysrutiov35W"),
@@ -90,12 +90,71 @@ def inserir_ou_atualizar_pesquisa():
         return jsonify({"erro": str(e)}), 500
 
 
+@app.route('/consultar', methods=['GET'])
+def consultar_pesquisa():
+    """
+    Consulta os dados de um contato na tabela public.whuana
+    Exemplo: GET /consultar?contato=51999999998
+    """
+    contato = request.args.get("contato")
+
+    if not contato:
+        return jsonify({"erro": "Parâmetro 'contato' é obrigatório na query string"}), 400
+
+    try:
+        conn = conectar()
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT
+                contato,
+                sexo,
+                genero,
+                idade,
+                estadocivil,
+                escolaridade,
+                numerofilhos,
+                planosaude,
+                tempoempresa,
+                atvdpromocaoempresa,
+                motivoatvdpromocaoempresa,
+                frequenciaatvdpromocaoempresa
+            FROM public.whuana
+            WHERE contato = %s
+        """, (contato,))
+
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if not row:
+            return jsonify({"erro": "Contato não encontrado"}), 404
+
+        resultado = {
+            "contato": row[0],
+            "sexo": row[1],
+            "genero": row[2],
+            "idade": row[3],
+            "estadocivil": row[4],
+            "escolaridade": row[5],
+            "numerofilhos": row[6],
+            "planosaude": row[7],
+            "tempoempresa": row[8],
+            "atvdpromocaoempresa": row[9],
+            "motivoatvdpromocaoempresa": row[10],
+            "frequenciaatvdpromocaoempresa": row[11],
+        }
+
+        return jsonify(resultado)
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+
 @app.route('/', methods=['GET'])
 def home():
     return jsonify({"status": "API rodando"})
 
 
 if __name__ == '__main__':
-    # Para testar localmente fora do Docker:
     app.run(host="0.0.0.0", debug=True, port=5000)
-
