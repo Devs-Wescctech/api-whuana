@@ -42,3 +42,13 @@ No seu `app.py`, a conexão está configurada com `host="localhost"`.
 Dentro do container, `localhost` aponta para o próprio container.  
 Para acessar o Postgres que está no host, ajuste para o IP do servidor (ex.: `172.16.x.x`) **ou** rode o container com `--network host`.
 
+COMANDO PARA RECRIAR CONTAINER APOS ATUALIZAR O APP.PY
+docker pull ghcr.io/devs-wescctech/api-whuana:latest
+
+docker rm -f api-whuana
+
+docker run -d \
+  --name api-whuana \
+  --restart always \
+  -p 5020:5000 \
+  ghcr.io/devs-wescctech/api-whuana:latest
