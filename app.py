@@ -93,8 +93,7 @@ def inserir_ou_atualizar_pesquisa():
 @app.route('/consultar', methods=['GET'])
 def consultar_pesquisa():
     """
-    Consulta os dados de um contato na tabela public.whuana
-    Exemplo: GET /consultar?contato=51999999998
+    Consulta 1 contato específico: /consultar?contato=...
     """
     contato = request.args.get("contato")
 
@@ -146,6 +145,63 @@ def consultar_pesquisa():
         }
 
         return jsonify(resultado)
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+
+@app.route('/consultar-todos', methods=['GET'])
+def consultar_todos():
+    """
+    Consulta todas as inserções da tabela public.whuana
+    """
+    try:
+        conn = conectar()
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT
+                contato,
+                sexo,
+                genero,
+                idade,
+                estadocivil,
+                escolaridade,
+                numerofilhos,
+                planosaude,
+                tempoempresa,
+                atvdpromocaoempresa,
+                motivoatvdpromocaoempresa,
+                frequenciaatvdpromocaoempresa
+            FROM public.whuana
+            ORDER BY contato
+        """)
+
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        resultados = []
+        for row in rows:
+            resultados.append({
+                "contato": row[0],
+                "sexo": row[1],
+                "genero": row[2],
+                "idade": row[3],
+                "estadocivil": row[4],
+                "escolaridade": row[5],
+                "numerofilhos": row[6],
+                "planosaude": row[7],
+                "tempoempresa": row[8],
+                "atvdpromocaoempresa": row[9],
+                "motivoatvdpromocaoempresa": row[10],
+                "frequenciaatvdpromocaoempresa": row[11],
+            })
+
+        return jsonify({
+            "total": len(resultados),
+            "resultados": resultados
+        })
 
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
