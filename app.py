@@ -1,15 +1,16 @@
 from flask import Flask, request, jsonify
 import psycopg2
+import os
 
 app = Flask(__name__)
 
 def conectar():
     return psycopg2.connect(
-        host="localhost",
-        database="clientes_db",   # seu banco
-        user="postgres",
-        password="1234",          # sua senha
-        port=5432
+        host=os.getenv("POSTGRES_HOST", "localhost"),
+        database=os.getenv("POSTGRES_DB", "postgres"),
+        user=os.getenv("POSTGRES_USER", "sup_cristian"),
+        password=os.getenv("POSTGRES_PASSWORD", "17qysrutiov35W"),
+        port=int(os.getenv("POSTGRES_PORT", "5432"))
     )
 
 @app.route('/inserir', methods=['POST'])
@@ -37,7 +38,7 @@ def inserir_ou_atualizar_pesquisa():
         cur = conn.cursor()
 
         cur.execute("""
-            INSERT INTO pesquisa (
+            INSERT INTO public.whuana AS whuana (
                 contato,
                 sexo,
                 genero,
@@ -53,17 +54,17 @@ def inserir_ou_atualizar_pesquisa():
             )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (contato) DO UPDATE SET
-                sexo = COALESCE(EXCLUDED.sexo, pesquisa.sexo),
-                genero = COALESCE(EXCLUDED.genero, pesquisa.genero),
-                idade = COALESCE(EXCLUDED.idade, pesquisa.idade),
-                estadocivil = COALESCE(EXCLUDED.estadocivil, pesquisa.estadocivil),
-                escolaridade = COALESCE(EXCLUDED.escolaridade, pesquisa.escolaridade),
-                numerofilhos = COALESCE(EXCLUDED.numerofilhos, pesquisa.numerofilhos),
-                planosaude = COALESCE(EXCLUDED.planosaude, pesquisa.planosaude),
-                tempoempresa = COALESCE(EXCLUDED.tempoempresa, pesquisa.tempoempresa),
-                atvdpromocaoempresa = COALESCE(EXCLUDED.atvdpromocaoempresa, pesquisa.atvdpromocaoempresa),
-                motivoatvdpromocaoempresa = COALESCE(EXCLUDED.motivoatvdpromocaoempresa, pesquisa.motivoatvdpromocaoempresa),
-                frequenciaatvdpromocaoempresa = COALESCE(EXCLUDED.frequenciaatvdpromocaoempresa, pesquisa.frequenciaatvdpromocaoempresa)
+                sexo = COALESCE(EXCLUDED.sexo, whuana.sexo),
+                genero = COALESCE(EXCLUDED.genero, whuana.genero),
+                idade = COALESCE(EXCLUDED.idade, whuana.idade),
+                estadocivil = COALESCE(EXCLUDED.estadocivil, whuana.estadocivil),
+                escolaridade = COALESCE(EXCLUDED.escolaridade, whuana.escolaridade),
+                numerofilhos = COALESCE(EXCLUDED.numerofilhos, whuana.numerofilhos),
+                planosaude = COALESCE(EXCLUDED.planosaude, whuana.planosaude),
+                tempoempresa = COALESCE(EXCLUDED.tempoempresa, whuana.tempoempresa),
+                atvdpromocaoempresa = COALESCE(EXCLUDED.atvdpromocaoempresa, whuana.atvdpromocaoempresa),
+                motivoatvdpromocaoempresa = COALESCE(EXCLUDED.motivoatvdpromocaoempresa, whuana.motivoatvdpromocaoempresa),
+                frequenciaatvdpromocaoempresa = COALESCE(EXCLUDED.frequenciaatvdpromocaoempresa, whuana.frequenciaatvdpromocaoempresa)
         """, (
             contato,
             sexo,
@@ -95,4 +96,5 @@ def home():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    # Para testar localmente fora do Docker:
+    app.run(host="0.0.0.0", debug=True, port=5000)
