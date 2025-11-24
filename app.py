@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import psycopg2
 import os
+import re
 
 app = Flask(__name__)
 
@@ -37,7 +38,8 @@ def inserir_ou_atualizar_pesquisa():
 
     contato = dados.get("contato")
 
-    # Questões 1 a 58 – todas explicitamente
+    # Questões 1 a 58 – todas explicitamente,
+    # já passando pelo limpar_valor (remove placeholder e vazio)
     questao1 = limpar_valor(dados.get("questao1"))
     questao2 = limpar_valor(dados.get("questao2"))
     questao3 = limpar_valor(dados.get("questao3"))
@@ -100,27 +102,52 @@ def inserir_ou_atualizar_pesquisa():
     if not contato:
         return jsonify({"erro": "Campo 'contato' é obrigatório"}), 400
 
+    # Monta lista em ordem para poder tratar repetições tipo "Masculino0"
+    questoes = [
+        questao1, questao2, questao3, questao4, questao5,
+        questao6, questao7, questao8, questao9, questao10,
+        questao11, questao12, questao13, questao14, questao15,
+        questao16, questao17, questao18, questao19, questao20,
+        questao21, questao22, questao23, questao24, questao25,
+        questao26, questao27, questao28, questao29, questao30,
+        questao31, questao32, questao33, questao34, questao35,
+        questao36, questao37, questao38, questao39, questao40,
+        questao41, questao42, questao43, questao44, questao45,
+        questao46, questao47, questao48, questao49, questao50,
+        questao51, questao52, questao53, questao54, questao55,
+        questao56, questao57, questao58
+    ]
+
+    # Segunda validação: remove valores "derivados" tipo Masculino0, Não sei3, 150 etc
+    # Regra:
+    # - se terminar com dígitos
+    # - e a "base" (antes dos dígitos) já apareceu em alguma questão anterior
+    #   => considera lixo de duplicação, vira None
+    bases_vistas = set()
+    for idx, v in enumerate(questoes):
+        if v is None:
+            continue
+
+        v_str = str(v).strip()
+
+        # Se NÃO é duplicação (sem dígito no fim), registra base e segue
+        m = re.match(r"^(.*?)(\d+)$", v_str)
+        if not m:
+            bases_vistas.add(v_str)
+            continue
+
+        base = m.group(1)
+        # Se a base já foi vista em alguma questão anterior, isso é duplicata tipo Masculino0..9
+        if base in bases_vistas:
+            questoes[idx] = None
+        else:
+            # base nova: aceita o valor e registra
+            bases_vistas.add(v_str)
+
     try:
         conn = conectar()
         cur = conn.cursor()
 
-        # Lista na mesma ordem dos %s
-        questoes = [
-            questao1, questao2, questao3, questao4, questao5,
-            questao6, questao7, questao8, questao9, questao10,
-            questao11, questao12, questao13, questao14, questao15,
-            questao16, questao17, questao18, questao19, questao20,
-            questao21, questao22, questao23, questao24, questao25,
-            questao26, questao27, questao28, questao29, questao30,
-            questao31, questao32, questao33, questao34, questao35,
-            questao36, questao37, questao38, questao39, questao40,
-            questao41, questao42, questao43, questao44, questao45,
-            questao46, questao47, questao48, questao49, questao50,
-            questao51, questao52, questao53, questao54, questao55,
-            questao56, questao57, questao58
-        ]
-
-        # Gera trechos de SQL dinamicamente, mas ainda 100% legível
         colunas = ", ".join([f"questao{i}" for i in range(1, 59)])
         placeholders = ", ".join(["%s"] * 58)
         updates = ", ".join([
@@ -156,7 +183,7 @@ def consultar_pesquisa():
     contato = request.args.get("contato")
 
     if not contato:
-        return jsonify({"erro": "Parâmetro 'contato' é obrigatório na query string"}), 400
+        return jsonify({"erro": "Parâmetro 'contato' é obrigatório"}), 400
 
     try:
         conn = conectar()
@@ -179,9 +206,7 @@ def consultar_pesquisa():
         if not row:
             return jsonify({"erro": "Contato não encontrado"}), 404
 
-        resultado = {
-            "contato": row[0]
-        }
+        resultado = {"contato": row[0]}
         for i in range(1, 59):
             resultado[f"questao{i}"] = row[i]
 
