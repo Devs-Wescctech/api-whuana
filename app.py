@@ -16,19 +16,10 @@ def conectar():
 @app.route('/inserir', methods=['POST'])
 def inserir_ou_atualizar_pesquisa():
     dados = request.get_json() or {}
-
     contato = dados.get("contato")
-    sexo = dados.get("sexo")
-    genero = dados.get("genero")
-    idade = dados.get("idade")
-    estadocivil = dados.get("estadocivil")
-    escolaridade = dados.get("escolaridade")
-    numerofilhos = dados.get("numerofilhos")
-    planosaude = dados.get("planosaude")
-    tempoempresa = dados.get("tempoempresa")
-    atvdpromocaoempresa = dados.get("atvdpromocaoempresa")
-    motivoatvdpromocaoempresa = dados.get("motivoatvdpromocaoempresa")
-    frequenciaatvdpromocaoempresa = dados.get("frequenciaatvdpromocaoempresa")
+
+    # Coleta todas as questões dinamicamente (questao1 a questao58)
+    questoes = [dados.get(f"questao{i}") for i in range(1, 59)]
 
     if not contato:
         return jsonify({"erro": "Campo 'contato' é obrigatório"}), 400
@@ -37,49 +28,21 @@ def inserir_ou_atualizar_pesquisa():
         conn = conectar()
         cur = conn.cursor()
 
-        cur.execute("""
-            INSERT INTO public.whuana AS whuana (
-                contato,
-                sexo,
-                genero,
-                idade,
-                estadocivil,
-                escolaridade,
-                numerofilhos,
-                planosaude,
-                tempoempresa,
-                atvdpromocaoempresa,
-                motivoatvdpromocaoempresa,
-                frequenciaatvdpromocaoempresa
-            )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (contato) DO UPDATE SET
-                sexo = COALESCE(EXCLUDED.sexo, whuana.sexo),
-                genero = COALESCE(EXCLUDED.genero, whuana.genero),
-                idade = COALESCE(EXCLUDED.idade, whuana.idade),
-                estadocivil = COALESCE(EXCLUDED.estadocivil, whuana.estadocivil),
-                escolaridade = COALESCE(EXCLUDED.escolaridade, whuana.escolaridade),
-                numerofilhos = COALESCE(EXCLUDED.numerofilhos, whuana.numerofilhos),
-                planosaude = COALESCE(EXCLUDED.planosaude, whuana.planosaude),
-                tempoempresa = COALESCE(EXCLUDED.tempoempresa, whuana.tempoempresa),
-                atvdpromocaoempresa = COALESCE(EXCLUDED.atvdpromocaoempresa, whuana.atvdpromocaoempresa),
-                motivoatvdpromocaoempresa = COALESCE(EXCLUDED.motivoatvdpromocaoempresa, whuana.motivoatvdpromocaoempresa),
-                frequenciaatvdpromocaoempresa = COALESCE(EXCLUDED.frequenciaatvdpromocaoempresa, whuana.frequenciaatvdpromocaoempresa)
-        """, (
-            contato,
-            sexo,
-            genero,
-            idade,
-            estadocivil,
-            escolaridade,
-            numerofilhos,
-            planosaude,
-            tempoempresa,
-            atvdpromocaoempresa,
-            motivoatvdpromocaoempresa,
-            frequenciaatvdpromocaoempresa
-        ))
+        # Monta dinamicamente a lista de colunas e placeholders
+        colunas = ", ".join([f"questao{i}" for i in range(1, 59)])
+        placeholders = ", ".join(["%s"] * 58)
+        updates = ", ".join([f"questao{i} = COALESCE(EXCLUDED.questao{i}, whuana.questao{i})" for i in range(1, 59)])
 
+        sql = f"""
+            INSERT INTO public.whuana AS whuana (
+                contato, {colunas}
+            )
+            VALUES (%s, {placeholders})
+            ON CONFLICT (contato) DO UPDATE SET
+                {updates};
+        """
+
+        cur.execute(sql, [contato] + questoes)
         conn.commit()
         cur.close()
         conn.close()
@@ -104,24 +67,14 @@ def consultar_pesquisa():
         conn = conectar()
         cur = conn.cursor()
 
-        cur.execute("""
-            SELECT
-                contato,
-                sexo,
-                genero,
-                idade,
-                estadocivil,
-                escolaridade,
-                numerofilhos,
-                planosaude,
-                tempoempresa,
-                atvdpromocaoempresa,
-                motivoatvdpromocaoempresa,
-                frequenciaatvdpromocaoempresa
+        colunas = ", ".join([f"questao{i}" for i in range(1, 59)])
+        sql = f"""
+            SELECT contato, {colunas}
             FROM public.whuana
-            WHERE contato = %s
-        """, (contato,))
+            WHERE contato = %s;
+        """
 
+        cur.execute(sql, (contato,))
         row = cur.fetchone()
         cur.close()
         conn.close()
@@ -129,20 +82,9 @@ def consultar_pesquisa():
         if not row:
             return jsonify({"erro": "Contato não encontrado"}), 404
 
-        resultado = {
-            "contato": row[0],
-            "sexo": row[1],
-            "genero": row[2],
-            "idade": row[3],
-            "estadocivil": row[4],
-            "escolaridade": row[5],
-            "numerofilhos": row[6],
-            "planosaude": row[7],
-            "tempoempresa": row[8],
-            "atvdpromocaoempresa": row[9],
-            "motivoatvdpromocaoempresa": row[10],
-            "frequenciaatvdpromocaoempresa": row[11],
-        }
+        resultado = {"contato": row[0]}
+        for i in range(1, 59):
+            resultado[f"questao{i}"] = row[i]
 
         return jsonify(resultado)
 
@@ -159,44 +101,23 @@ def consultar_todos():
         conn = conectar()
         cur = conn.cursor()
 
-        cur.execute("""
-            SELECT
-                contato,
-                sexo,
-                genero,
-                idade,
-                estadocivil,
-                escolaridade,
-                numerofilhos,
-                planosaude,
-                tempoempresa,
-                atvdpromocaoempresa,
-                motivoatvdpromocaoempresa,
-                frequenciaatvdpromocaoempresa
+        colunas = ", ".join([f"questao{i}" for i in range(1, 59)])
+        sql = f"""
+            SELECT contato, {colunas}
             FROM public.whuana
-            ORDER BY contato
-        """)
-
+            ORDER BY contato;
+        """
+        cur.execute(sql)
         rows = cur.fetchall()
         cur.close()
         conn.close()
 
         resultados = []
         for row in rows:
-            resultados.append({
-                "contato": row[0],
-                "sexo": row[1],
-                "genero": row[2],
-                "idade": row[3],
-                "estadocivil": row[4],
-                "escolaridade": row[5],
-                "numerofilhos": row[6],
-                "planosaude": row[7],
-                "tempoempresa": row[8],
-                "atvdpromocaoempresa": row[9],
-                "motivoatvdpromocaoempresa": row[10],
-                "frequenciaatvdpromocaoempresa": row[11],
-            })
+            item = {"contato": row[0]}
+            for i in range(1, 59):
+                item[f"questao{i}"] = row[i]
+            resultados.append(item)
 
         return jsonify({
             "total": len(resultados),
