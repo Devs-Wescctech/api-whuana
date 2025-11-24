@@ -15,11 +15,10 @@ def conectar():
 
 def limpar_valor(v):
     """
-    Regras:
-    - Se for None -> None
-    - Se for string vazia -> None
-    - Se for algo como "$contato.algumaCoisa" -> None
-    - Qualquer outro valor é retornado como está
+    - None -> None
+    - string vazia -> None
+    - começa com "$contato." -> None
+    - resto mantém
     """
     if v is None:
         return None
@@ -39,16 +38,17 @@ def inserir_ou_atualizar_pesquisa():
 
     contato = dados.get("contato")
 
-    # questoes 1..58 explicitamente, já passando pelo limpar_valor
-    questao1 = limpar_valor(dados.get("questao1"))
-    questao2 = limpar_valor(dados.get("questao2"))
-    questao3 = limpar_valor(dados.get("questao3"))
-    questao4 = limpar_valor(dados.get("questao4"))
-    questao5 = limpar_valor(dados.get("questao5"))
-    questao6 = limpar_valor(dados.get("questao6"))
-    questao7 = limpar_valor(dados.get("questao7"))
-    questao8 = limpar_valor(dados.get("questao8"))
-    questao9 = limpar_valor(dados.get("questao9"))
+    # questoes 01..09 com zero à esquerda
+    questao01 = limpar_valor(dados.get("questao01"))
+    questao02 = limpar_valor(dados.get("questao02"))
+    questao03 = limpar_valor(dados.get("questao03"))
+    questao04 = limpar_valor(dados.get("questao04"))
+    questao05 = limpar_valor(dados.get("questao05"))
+    questao06 = limpar_valor(dados.get("questao06"))
+    questao07 = limpar_valor(dados.get("questao07"))
+    questao08 = limpar_valor(dados.get("questao08"))
+    questao09 = limpar_valor(dados.get("questao09"))
+    # questoes 10..58 normais
     questao10 = limpar_valor(dados.get("questao10"))
     questao11 = limpar_valor(dados.get("questao11"))
     questao12 = limpar_valor(dados.get("questao12"))
@@ -102,36 +102,42 @@ def inserir_ou_atualizar_pesquisa():
     if not contato:
         return jsonify({"erro": "Campo 'contato' é obrigatório"}), 400
 
+    # ordem tem que bater com a lista de colunas
     questoes = [
-        questao1, questao2, questao3, questao4, questao5,
-        questao6, questao7, questao8, questao9, questao10,
-        questao11, questao12, questao13, questao14, questao15,
-        questao16, questao17, questao18, questao19, questao20,
-        questao21, questao22, questao23, questao24, questao25,
-        questao26, questao27, questao28, questao29, questao30,
-        questao31, questao32, questao33, questao34, questao35,
-        questao36, questao37, questao38, questao39, questao40,
-        questao41, questao42, questao43, questao44, questao45,
-        questao46, questao47, questao48, questao49, questao50,
-        questao51, questao52, questao53, questao54, questao55,
-        questao56, questao57, questao58
+        questao01, questao02, questao03, questao04, questao05,
+        questao06, questao07, questao08, questao09,
+        questao10, questao11, questao12, questao13, questao14,
+        questao15, questao16, questao17, questao18, questao19,
+        questao20, questao21, questao22, questao23, questao24,
+        questao25, questao26, questao27, questao28, questao29,
+        questao30, questao31, questao32, questao33, questao34,
+        questao35, questao36, questao37, questao38, questao39,
+        questao40, questao41, questao42, questao43, questao44,
+        questao45, questao46, questao47, questao48, questao49,
+        questao50, questao51, questao52, questao53, questao54,
+        questao55, questao56, questao57, questao58
     ]
+
+    # nomes das colunas na tabela
+    colunas_01_09 = [f"questao0{i}" for i in range(1, 10)]  # questao01..questao09
+    colunas_10_58 = [f"questao{i}" for i in range(10, 59)]  # questao10..questao58
+    colunas = colunas_01_09 + colunas_10_58  # total 58
 
     try:
         conn = conectar()
         cur = conn.cursor()
 
-        colunas = ", ".join([f"questao{i}" for i in range(1, 59)])
-        placeholders = ", ".join(["%s"] * 58)
+        colunas_sql = ", ".join(colunas)
+        placeholders = ", ".join(["%s"] * len(colunas))
         updates = ", ".join([
-            f"questao{i} = COALESCE(EXCLUDED.questao{i}, whuana.questao{i})"
-            for i in range(1, 59)
+            f"{col} = COALESCE(EXCLUDED.{col}, whuana.{col})"
+            for col in colunas
         ])
 
         sql = f"""
             INSERT INTO public.whuana AS whuana (
                 contato,
-                {colunas}
+                {colunas_sql}
             )
             VALUES (%s, {placeholders})
             ON CONFLICT (contato) DO UPDATE SET
@@ -164,12 +170,15 @@ def consultar_pesquisa():
         conn = conectar()
         cur = conn.cursor()
 
-        colunas = ", ".join([f"questao{i}" for i in range(1, 59)])
+        colunas_01_09 = [f"questao0{i}" for i in range(1, 10)]
+        colunas_10_58 = [f"questao{i}" for i in range(10, 59)]
+        colunas = colunas_01_09 + colunas_10_58
+        colunas_sql = ", ".join(colunas)
 
         cur.execute(f"""
             SELECT
                 contato,
-                {colunas}
+                {colunas_sql}
             FROM public.whuana
             WHERE contato = %s
         """, (contato,))
@@ -182,8 +191,8 @@ def consultar_pesquisa():
             return jsonify({"erro": "Contato não encontrado"}), 404
 
         resultado = {"contato": row[0]}
-        for i in range(1, 59):
-            resultado[f"questao{i}"] = row[i]
+        for idx, col in enumerate(colunas, start=1):
+            resultado[col] = row[idx]
 
         return jsonify(resultado)
 
@@ -200,12 +209,15 @@ def consultar_todos():
         conn = conectar()
         cur = conn.cursor()
 
-        colunas = ", ".join([f"questao{i}" for i in range(1, 59)])
+        colunas_01_09 = [f"questao0{i}" for i in range(1, 10)]
+        colunas_10_58 = [f"questao{i}" for i in range(10, 59)]
+        colunas = colunas_01_09 + colunas_10_58
+        colunas_sql = ", ".join(colunas)
 
         cur.execute(f"""
             SELECT
                 contato,
-                {colunas}
+                {colunas_sql}
             FROM public.whuana
             ORDER BY contato
         """)
@@ -217,8 +229,8 @@ def consultar_todos():
         resultados = []
         for row in rows:
             item = {"contato": row[0]}
-            for i in range(1, 59):
-                item[f"questao{i}"] = row[i]
+            for idx, col in enumerate(colunas, start=1):
+                item[col] = row[idx]
             resultados.append(item)
 
         return jsonify({
