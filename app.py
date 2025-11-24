@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 import psycopg2
 import os
-import re
 
 app = Flask(__name__)
 
@@ -14,95 +13,74 @@ def conectar():
         port=int(os.getenv("POSTGRES_PORT", "5432"))
     )
 
-def limpar_valor(v):
-    """
-    Converte valores inválidos em None:
-    - None ou string vazia -> None
-    - valor começando com "$contato." -> None
-    """
-    if v is None:
-        return None
-    if isinstance(v, str):
-        v2 = v.strip()
-        if v2 == "":
-            return None
-        if v2.startswith("$contato."):
-            return None
-        return v2
-    return v
-
-
 @app.route('/inserir', methods=['POST'])
 def inserir_ou_atualizar_pesquisa():
     dados = request.get_json() or {}
 
     contato = dados.get("contato")
-
-    # Questões 1 a 58 – todas explicitamente,
-    # já passando pelo limpar_valor (remove placeholder e vazio)
-    questao1 = limpar_valor(dados.get("questao1"))
-    questao2 = limpar_valor(dados.get("questao2"))
-    questao3 = limpar_valor(dados.get("questao3"))
-    questao4 = limpar_valor(dados.get("questao4"))
-    questao5 = limpar_valor(dados.get("questao5"))
-    questao6 = limpar_valor(dados.get("questao6"))
-    questao7 = limpar_valor(dados.get("questao7"))
-    questao8 = limpar_valor(dados.get("questao8"))
-    questao9 = limpar_valor(dados.get("questao9"))
-    questao10 = limpar_valor(dados.get("questao10"))
-    questao11 = limpar_valor(dados.get("questao11"))
-    questao12 = limpar_valor(dados.get("questao12"))
-    questao13 = limpar_valor(dados.get("questao13"))
-    questao14 = limpar_valor(dados.get("questao14"))
-    questao15 = limpar_valor(dados.get("questao15"))
-    questao16 = limpar_valor(dados.get("questao16"))
-    questao17 = limpar_valor(dados.get("questao17"))
-    questao18 = limpar_valor(dados.get("questao18"))
-    questao19 = limpar_valor(dados.get("questao19"))
-    questao20 = limpar_valor(dados.get("questao20"))
-    questao21 = limpar_valor(dados.get("questao21"))
-    questao22 = limpar_valor(dados.get("questao22"))
-    questao23 = limpar_valor(dados.get("questao23"))
-    questao24 = limpar_valor(dados.get("questao24"))
-    questao25 = limpar_valor(dados.get("questao25"))
-    questao26 = limpar_valor(dados.get("questao26"))
-    questao27 = limpar_valor(dados.get("questao27"))
-    questao28 = limpar_valor(dados.get("questao28"))
-    questao29 = limpar_valor(dados.get("questao29"))
-    questao30 = limpar_valor(dados.get("questao30"))
-    questao31 = limpar_valor(dados.get("questao31"))
-    questao32 = limpar_valor(dados.get("questao32"))
-    questao33 = limpar_valor(dados.get("questao33"))
-    questao34 = limpar_valor(dados.get("questao34"))
-    questao35 = limpar_valor(dados.get("questao35"))
-    questao36 = limpar_valor(dados.get("questao36"))
-    questao37 = limpar_valor(dados.get("questao37"))
-    questao38 = limpar_valor(dados.get("questao38"))
-    questao39 = limpar_valor(dados.get("questao39"))
-    questao40 = limpar_valor(dados.get("questao40"))
-    questao41 = limpar_valor(dados.get("questao41"))
-    questao42 = limpar_valor(dados.get("questao42"))
-    questao43 = limpar_valor(dados.get("questao43"))
-    questao44 = limpar_valor(dados.get("questao44"))
-    questao45 = limpar_valor(dados.get("questao45"))
-    questao46 = limpar_valor(dados.get("questao46"))
-    questao47 = limpar_valor(dados.get("questao47"))
-    questao48 = limpar_valor(dados.get("questao48"))
-    questao49 = limpar_valor(dados.get("questao49"))
-    questao50 = limpar_valor(dados.get("questao50"))
-    questao51 = limpar_valor(dados.get("questao51"))
-    questao52 = limpar_valor(dados.get("questao52"))
-    questao53 = limpar_valor(dados.get("questao53"))
-    questao54 = limpar_valor(dados.get("questao54"))
-    questao55 = limpar_valor(dados.get("questao55"))
-    questao56 = limpar_valor(dados.get("questao56"))
-    questao57 = limpar_valor(dados.get("questao57"))
-    questao58 = limpar_valor(dados.get("questao58"))
+    questao1 = dados.get("questao1")
+    questao2 = dados.get("questao2")
+    questao3 = dados.get("questao3")
+    questao4 = dados.get("questao4")
+    questao5 = dados.get("questao5")
+    questao6 = dados.get("questao6")
+    questao7 = dados.get("questao7")
+    questao8 = dados.get("questao8")
+    questao9 = dados.get("questao9")
+    questao10 = dados.get("questao10")
+    questao11 = dados.get("questao11")
+    questao12 = dados.get("questao12")
+    questao13 = dados.get("questao13")
+    questao14 = dados.get("questao14")
+    questao15 = dados.get("questao15")
+    questao16 = dados.get("questao16")
+    questao17 = dados.get("questao17")
+    questao18 = dados.get("questao18")
+    questao19 = dados.get("questao19")
+    questao20 = dados.get("questao20")
+    questao21 = dados.get("questao21")
+    questao22 = dados.get("questao22")
+    questao23 = dados.get("questao23")
+    questao24 = dados.get("questao24")
+    questao25 = dados.get("questao25")
+    questao26 = dados.get("questao26")
+    questao27 = dados.get("questao27")
+    questao28 = dados.get("questao28")
+    questao29 = dados.get("questao29")
+    questao30 = dados.get("questao30")
+    questao31 = dados.get("questao31")
+    questao32 = dados.get("questao32")
+    questao33 = dados.get("questao33")
+    questao34 = dados.get("questao34")
+    questao35 = dados.get("questao35")
+    questao36 = dados.get("questao36")
+    questao37 = dados.get("questao37")
+    questao38 = dados.get("questao38")
+    questao39 = dados.get("questao39")
+    questao40 = dados.get("questao40")
+    questao41 = dados.get("questao41")
+    questao42 = dados.get("questao42")
+    questao43 = dados.get("questao43")
+    questao44 = dados.get("questao44")
+    questao45 = dados.get("questao45")
+    questao46 = dados.get("questao46")
+    questao47 = dados.get("questao47")
+    questao48 = dados.get("questao48")
+    questao49 = dados.get("questao49")
+    questao50 = dados.get("questao50")
+    questao51 = dados.get("questao51")
+    questao52 = dados.get("questao52")
+    questao53 = dados.get("questao53")
+    questao54 = dados.get("questao54")
+    questao55 = dados.get("questao55")
+    questao56 = dados.get("questao56")
+    questao57 = dados.get("questao57")
+    questao58 = dados.get("questao58")
 
     if not contato:
         return jsonify({"erro": "Campo 'contato' é obrigatório"}), 400
 
-    # Monta lista em ordem para poder tratar repetições tipo "Masculino0"
+    # lista para ficar fácil passar no execute
     questoes = [
         questao1, questao2, questao3, questao4, questao5,
         questao6, questao7, questao8, questao9, questao10,
@@ -118,36 +96,11 @@ def inserir_ou_atualizar_pesquisa():
         questao56, questao57, questao58
     ]
 
-    # Segunda validação: remove valores "derivados" tipo Masculino0, Não sei3, 150 etc
-    # Regra:
-    # - se terminar com dígitos
-    # - e a "base" (antes dos dígitos) já apareceu em alguma questão anterior
-    #   => considera lixo de duplicação, vira None
-    bases_vistas = set()
-    for idx, v in enumerate(questoes):
-        if v is None:
-            continue
-
-        v_str = str(v).strip()
-
-        # Se NÃO é duplicação (sem dígito no fim), registra base e segue
-        m = re.match(r"^(.*?)(\d+)$", v_str)
-        if not m:
-            bases_vistas.add(v_str)
-            continue
-
-        base = m.group(1)
-        # Se a base já foi vista em alguma questão anterior, isso é duplicata tipo Masculino0..9
-        if base in bases_vistas:
-            questoes[idx] = None
-        else:
-            # base nova: aceita o valor e registra
-            bases_vistas.add(v_str)
-
     try:
         conn = conectar()
         cur = conn.cursor()
 
+        # monta colunas, placeholders e updates de forma segura
         colunas = ", ".join([f"questao{i}" for i in range(1, 59)])
         placeholders = ", ".join(["%s"] * 58)
         updates = ", ".join([
@@ -157,7 +110,8 @@ def inserir_ou_atualizar_pesquisa():
 
         sql = f"""
             INSERT INTO public.whuana AS whuana (
-                contato, {colunas}
+                contato,
+                {colunas}
             )
             VALUES (%s, {placeholders})
             ON CONFLICT (contato) DO UPDATE SET
@@ -165,6 +119,7 @@ def inserir_ou_atualizar_pesquisa():
         """
 
         cur.execute(sql, [contato] + questoes)
+
         conn.commit()
         cur.close()
         conn.close()
@@ -183,7 +138,7 @@ def consultar_pesquisa():
     contato = request.args.get("contato")
 
     if not contato:
-        return jsonify({"erro": "Parâmetro 'contato' é obrigatório"}), 400
+        return jsonify({"erro": "Parâmetro 'contato' é obrigatório na query string"}), 400
 
     try:
         conn = conectar()
